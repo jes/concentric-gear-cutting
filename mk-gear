@@ -1,0 +1,63 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+# The dial indicator should be measuring at the top of the part.
+# The cutting tool should be at the back of the part
+# (so if you take an indicator reading at A90, you'd have to be
+# at A0 for the same point to be at the cutting tool)
+
+my $high_reading = 0.26; # what is the highest reading on the dial indicator?
+my $low_reading = 0.0; # what is the lowest reading on the dial indicator?
+my $high_reading_angle = 0; # at what angle do you find the high reading?
+my $nteeth = 33;
+my $yclearance = 1.5; # mm - at what Y coordinate are we clear of the work?
+my $ycut = -0.5; # mm - at what Y coordinate are we cutting?
+my $xstart = 1; # mm - at what X coordinate does the cut start?
+my $xend = -2; # mm - at what X coordinate does the cut end?
+my $z = 0; # mm - at what Z coordinate does this all take place?
+my $rapidfeed = 10000; # mm/min - at what feed rate do we travel?
+my $cutfeed = 80; # mm/min - at what feed rate do we cut?
+
+# find the total error
+my $error = $high_reading - $low_reading;
+
+# find the angle at which our tool is at the high spot
+my $high_angle = ($high_reading_angle + 270) % 360;
+
+# we assume that the work piece is circular and is on an axis parallel to the A axis
+# but with centre point "$error" mm away from the A axis' centre point, and the
+# high spot is when we're at "$high_angle"
+
+print "G61\n";
+
+my $angle = 0;
+print "G0 X$xstart Y$yclearance Z$z A$angle\n";
+
+for my $i (1.. $nteeth) {
+    my $thisycut = $ycut + y_offset($angle);
+    print "G1 Y$thisycut F$cutfeed\n";
+    print "G1 X$xend F$cutfeed\n";
+    print "G1 Y$yclearance F$rapidfeed\n";
+    print "G1 X$xstart F$rapidfeed\n";
+    $angle = $i * (360 / $nteeth);
+    print "G0 A$angle\n";
+}
+
+print "G0 A0\n";
+print "M2\n";
+
+sub y_offset {
+    my ($angle) = @_;
+    my $degrees_from_high = canon($angle - $high_angle);
+    $degrees_from_high = 360 - $degrees_from_high if $degrees_from_high > 180;
+    my $r = $error / 2;
+    return ($error / 2) * cos($degrees_from_high * 3.1415926535/180);
+}
+
+sub canon {
+    my ($angle) = @_;
+    # XXX: if porting, check modulo operator acts the same as Perl with negative numbers!
+    return $angle%360;
+}
