@@ -24,21 +24,20 @@ my $shaft_chamfer_excess = 0.05; # mm - extend the shaft chamfer into air, past 
 my $angle_increment = 30; # degrees
 my $feed_per_rev = 0.025; # mm - how far does X advance per revolution of A axis?
 my $rpm = 20; # rotation speed of A axis (implies feedrate)
-my $xstart = 2; # mm
+my $xstart = 5; # mm
 my $zend = 20; # mm
 
 my $feedrate = $rpm * 360/$angle_increment; # inverse time feed rate (moves/min = revs/min * moves/rev)
 
-print "G61\n"; # exact stop
-print "G93\n"; # inverse time
-
-print "G92 A0\n"; # set A=0
-print "G0 $xstart Y0 Z0\n";
+G(61); # exact stop
+G(93); # inverse time
+G(92, A => 0); # set A=0
 
 my $X = $xstart;
 my $Y = 0;
 my $Z = 0;
 my $A = 0;
+G(0, X => $xstart, Y => 0, Z => z_offset());
 
 cut(0, 0);
 rapid(0, $pivot_diameter/2 - $pivot_chamfer);
@@ -48,7 +47,7 @@ rapid(-$pivot_length, $shaft_diameter/2 - $shaft_chamfer);
 cut(-$pivot_length-$shaft_chamfer-$shaft_chamfer_excess, $shaft_diameter/2+$shaft_chamfer_excess);
 rapid($xstart, $zend);
 
-print "G92 A0\n"; # set A=0
+G(92, A => 0); # set A=0
 print "M2\n";
 
 sub cut {
@@ -66,19 +65,22 @@ sub cut {
                 # don't overshoot
                 $X = $toX;
                 $Z = $toZ;
-                print "G1 X$X Z$Z A$A F$feedrate\n"; # $feedrate is inverse time
+                G(1, X=>$X, Z=>$Z+z_offset(), A=>$A, F=>$feedrate); # $feedrate is inverse time
                 return;
             }
-            print "G1 X$X Z$Z A$A F$feedrate\n"; # $feedrate is inverse time
+            G(1, X=>$X, Z=>$Z+z_offset(), A=>$A, F=>$feedrate); # $feedrate is inverse time
         }
     }
 }
 
 sub rapid {
-    my ($toX, $toZ) = @_;
-    print "G0 X$toX Z$toZ\n";
-    $X = $toX;
-    $Z = $toZ;
+    ($X, $Z) = @_;
+    G(0, X => $X, Z => $Z+z_offset());
+}
+
+sub G {
+    my ($gcode, %opts) = @_;
+    print "G$gcode " . join(' ', map { sprintf("$_%.3f", $opts{$_}) } keys %opts) . "\n";
 }
 
 sub z_offset {
