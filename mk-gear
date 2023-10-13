@@ -20,15 +20,8 @@ my $z = 0; # mm - at what Z coordinate does this all take place?
 my $rapidfeed = 10000; # mm/min - at what feed rate do we travel?
 my $cutfeed = 80; # mm/min - at what feed rate do we cut?
 
-# find the total error
-my $error = $high_reading - $low_reading;
-
 # find the angle at which our tool is at the high spot
 my $high_angle = ($high_reading_angle + 270) % 360;
-
-# we assume that the work piece is circular and is on an axis parallel to the A axis
-# but with centre point "$error" mm away from the A axis' centre point, and the
-# high spot is when we're at "$high_angle"
 
 print "G61\n";
 
@@ -52,8 +45,7 @@ sub y_offset {
     my ($angle) = @_;
     my $degrees_from_high = canon($angle - $high_angle);
     $degrees_from_high = 360 - $degrees_from_high if $degrees_from_high > 180;
-    my $r = $error / 2;
-    return ($error / 2) * cos($degrees_from_high * 3.1415926535/180);
+    return (($high_reading-$low_reading) / 2) * cos($degrees_from_high * 3.1415926535/180);
 }
 
 sub canon {

@@ -1,0 +1,94 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+# The dial indicator should be measuring at the top of the part.
+# The cutting tool should also be at the top of the part
+
+# Zero the Z and Y axes on the centre line, zero the X axis with the left
+# hand edge of the tool touching the right hand edge of the final pivot location
+
+my $high_reading = 0.26; # what is the highest reading on the dial indicator?
+my $low_reading = 0.0; # what is the lowest reading on the dial indicator?
+my $high_reading_angle = 0; # at what angle do you find the high reading?
+
+# See drawing at https://img.incoherency.co.uk/4822
+my $pivot_diameter = 0.5; # mm
+my $pivot_length = 1.0; # mm
+my $pivot_chamfer = 0.05; # mm
+my $shaft_diameter = 1.0; # mm
+my $shaft_chamfer = 0.05; # mm
+my $shaft_chamfer_excess = 0.05; # mm - extend the shaft chamfer into air, past the point that it meets the shaft diameter
+
+my $angle_increment = 30; # degrees
+my $feed_per_rev = 0.025; # mm - how far does X advance per revolution of A axis?
+my $rpm = 20; # rotation speed of A axis (implies feedrate)
+my $xstart = 2; # mm
+my $zend = 20; # mm
+
+my $feedrate = $rpm * 360/$angle_increment; # inverse time feed rate (moves/min = revs/min * moves/rev)
+
+print "G61\n"; # exact stop
+print "G93\n"; # inverse time
+
+print "G92 A0\n"; # set A=0
+print "G0 $xstart Y0 Z0\n";
+
+my $X = $xstart;
+my $Y = 0;
+my $Z = 0;
+my $A = 0;
+
+cut(0, 0);
+rapid(0, $pivot_diameter/2 - $pivot_chamfer);
+cut(-$pivot_chamfer, $pivot_diameter/2);
+cut(-$pivot_length, $pivot_diameter/2);
+rapid(-$pivot_length, $shaft_diameter/2 - $shaft_chamfer);
+cut(-$pivot_length-$shaft_chamfer-$shaft_chamfer_excess, $shaft_diameter/2+$shaft_chamfer_excess);
+rapid($xstart, $zend);
+
+print "G92 A0\n"; # set A=0
+print "M2\n";
+
+sub cut {
+    my ($toX, $toZ) = @_;
+    my $x_per_rev = $feed_per_rev;
+    my $z_per_rev = (($toZ-$Z)/($toX-$X)) * $x_per_rev;
+    # keep doing revolutions until we reach the desired X point
+    while (1) {
+        my $nsteps = 360/$angle_increment;
+        for my $i (1 .. $nsteps) {
+            $A = $A + $angle_increment;
+            $X = $X - $x_per_rev/$nsteps;
+            $Z = $Z - $z_per_rev/$nsteps;
+            if ($X < $toX) {
+                # don't overshoot
+                $X = $toX;
+                $Z = $toZ;
+                print "G1 X$X Z$Z A$A F$feedrate\n"; # $feedrate is inverse time
+                return;
+            }
+            print "G1 X$X Z$Z A$A F$feedrate\n"; # $feedrate is inverse time
+        }
+    }
+}
+
+sub rapid {
+    my ($toX, $toZ) = @_;
+    print "G0 X$toX Z$toZ\n";
+    $X = $toX;
+    $Z = $toZ;
+}
+
+sub z_offset {
+    my $degrees_from_high = canon($A - $high_reading_angle);
+    $degrees_from_high = 360 - $degrees_from_high if $degrees_from_high > 180;
+    return (($high_reading - $low_reading) / 2) * cos($degrees_from_high * 3.1415926535/180);
+}
+
+sub canon {
+    my ($angle) = @_;
+    # XXX: if porting, check modulo operator acts the same as Perl with negative numbers!
+    return $angle%360;
+}
