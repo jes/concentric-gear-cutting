@@ -16,10 +16,10 @@ my $high_reading_angle = 0; # at what angle do you find the high reading?
 # See drawing at https://img.incoherency.co.uk/4822
 my $pivot_diameter = 0.5; # mm
 my $pivot_length = 1.0; # mm
-my $pivot_chamfer = 0.05; # mm
+my $pivot_chamfer = 0.1; # mm
 my $shaft_diameter = 1.0; # mm
-my $shaft_chamfer = 0.05; # mm
-my $shaft_chamfer_excess = 0.05; # mm - extend the shaft chamfer into air, past the point that it meets the shaft diameter
+my $shaft_chamfer = 0.1; # mm
+my $shaft_chamfer_excess = 0.1; # mm - extend the shaft chamfer into air, past the point that it meets the shaft diameter
 
 my $angle_increment = 30; # degrees
 my $feed_per_rev = 0.06; # mm - how far does X advance per revolution of A axis?
