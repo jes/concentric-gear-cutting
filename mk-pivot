@@ -22,16 +22,14 @@ my $shaft_chamfer = 0.05; # mm
 my $shaft_chamfer_excess = 0.05; # mm - extend the shaft chamfer into air, past the point that it meets the shaft diameter
 
 my $angle_increment = 30; # degrees
-my $feed_per_rev = 0.025; # mm - how far does X advance per revolution of A axis?
-my $rpm = 20; # rotation speed of A axis (implies feedrate)
-my $xstart = 5; # mm
+my $feed_per_rev = 0.06; # mm - how far does X advance per revolution of A axis?
+my $rpm = 60; # rotation speed of A axis (implies feedrate)
+my $xstart = 0.5; # mm
 my $zend = 20; # mm
 
 my $feedrate = $rpm * 360/$angle_increment; # inverse time feed rate (moves/min = revs/min * moves/rev)
 
-G(61); # exact stop
 G(93); # inverse time
-G(92, A => 0); # set A=0
 
 my $X = $xstart;
 my $Y = 0;
@@ -47,7 +45,7 @@ rapid(-$pivot_length, $shaft_diameter/2 - $shaft_chamfer);
 cut(-$pivot_length-$shaft_chamfer-$shaft_chamfer_excess, $shaft_diameter/2+$shaft_chamfer_excess);
 rapid($xstart, $zend);
 
-G(92, A => 0); # set A=0
+G(92, A => canon($A)); # unwind A
 print "M2\n";
 
 sub cut {
