@@ -50,8 +50,7 @@ G(92, A => canon($A)); # unwind A
 print "M2\n";
 
 sub cut {
-    my ($toX, $toZ, $feed_per_rev) = @_;
-    my $x_per_rev = $feed_per_rev;
+    my ($toX, $toZ, $x_per_rev) = @_;
     my $z_per_rev = (($toZ-$Z)/($toX-$X)) * $x_per_rev;
     # keep doing revolutions until we reach the desired X point
     while (1) {
