@@ -22,10 +22,11 @@ my $shaft_chamfer = 0.1; # mm
 my $shaft_chamfer_excess = 0.1; # mm - extend the shaft chamfer into air, past the point that it meets the shaft diameter
 
 my $angle_increment = 30; # degrees
-my $feed_per_rev = 0.06; # mm - how far does X advance per revolution of A axis?
+my $straight_feed_per_rev = 0.06; # mm - how far does X advance per revolution, on straight sections?
+my $chamfer_feed_per_rev = 0.01; # mm - how far does X advance per revolution, on chamfers?
 my $rpm = 60; # rotation speed of A axis (implies feedrate)
-my $xstart = 0.5; # mm
-my $zend = 20; # mm
+my $xstart = 0.2; # mm
+my $zend = 60; # mm
 
 my $feedrate = $rpm * 360/$angle_increment; # inverse time feed rate (moves/min = revs/min * moves/rev)
 
@@ -37,19 +38,19 @@ my $Z = 0;
 my $A = 0;
 G(0, X => $xstart, Y => 0, Z => z_offset());
 
-cut(0, 0);
+cut(0, 0, $straight_feed_per_rev);
 rapid(0, $pivot_diameter/2 - $pivot_chamfer);
-cut(-$pivot_chamfer, $pivot_diameter/2);
-cut(-$pivot_length, $pivot_diameter/2);
+cut(-$pivot_chamfer, $pivot_diameter/2, $chamfer_feed_per_rev);
+cut(-$pivot_length, $pivot_diameter/2, $straight_feed_per_rev);
 rapid(-$pivot_length, $shaft_diameter/2 - $shaft_chamfer);
-cut(-$pivot_length-$shaft_chamfer-$shaft_chamfer_excess, $shaft_diameter/2+$shaft_chamfer_excess);
+cut(-$pivot_length-$shaft_chamfer-$shaft_chamfer_excess, $shaft_diameter/2+$shaft_chamfer_excess, $chamfer_feed_per_rev);
 rapid($xstart, $zend);
 
 G(92, A => canon($A)); # unwind A
 print "M2\n";
 
 sub cut {
-    my ($toX, $toZ) = @_;
+    my ($toX, $toZ, $feed_per_rev) = @_;
     my $x_per_rev = $feed_per_rev;
     my $z_per_rev = (($toZ-$Z)/($toX-$X)) * $x_per_rev;
     # keep doing revolutions until we reach the desired X point
